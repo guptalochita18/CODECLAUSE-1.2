@@ -1,0 +1,42 @@
+import pandas as pd
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+import nltk
+nltk.download('punkt')
+nltk.download('stopwords')
+from nltk.corpus import stopwords
+from nltk.stem import PorterStemmer
+from nltk.tokenize import word_tokenize
+
+# Load the dataset
+df = pd.read_csv('C:\\Users\\Lochita\\Desktop\\plagiarism.pyc\\upc_corpus.csv')
+
+# Preprocessing - Remove stopwords and perform stemming
+stop_words = set(stopwords.words('english'))
+stemmer = PorterStemmer()
+
+def preprocess_text(text):
+    tokens = word_tokenize(text.lower())
+    tokens = [stemmer.stem(token) for token in tokens if token.isalpha() and token not in stop_words]
+    return ' '.join(tokens)
+
+df['processed_text'] = df['text'].apply(preprocess_text)
+
+# Calculate document similarities
+vectorizer = TfidfVectorizer()
+tfidf_matrix = vectorizer.fit_transform(df['processed_text'])
+similarity_matrix = cosine_similarity(tfidf_matrix, tfidf_matrix)
+
+# Set a similarity threshold and check for plagiarism
+threshold = 0.9
+
+plagiarism_detected = False
+
+for i in range(len(df)):
+    for j in range(i+1, len(df)):
+        if similarity_matrix[i, j] >= threshold:
+            plagiarism_detected = True
+            print(f"Plagiarism detected between documents {i+1} and {j+1}.")
+
+if not plagiarism_detected:
+    print("No plagiarism detected.")
